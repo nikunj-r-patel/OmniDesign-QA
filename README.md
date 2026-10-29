@@ -4,7 +4,7 @@ An autonomous, enterprise-grade, senior human-QA automation framework engineered
 
 ---
 
-## ðŸŒŸ Key Highlights & Philosophy
+## Key Highlights & Philosophy
 
 Traditional automated visual regression and pixel-matching tools fail because they flag intentional dynamic client content, localized currency, responsive container growth, and font rendering idiosyncrasies as visual bugs. This framework implements a **10-Year Senior Human QA standard**:
 
@@ -18,7 +18,7 @@ Traditional automated visual regression and pixel-matching tools fail because th
 
 ---
 
-## ðŸ“œ Full Project Journey: Chronological Evolution (Day 1 to Present)
+## Full Project Journey: Chronological Evolution (Day 1 to Present)
 
 This framework was built, refined, and perfected through continuous collaborative iterations over the course of multiple weeks. Below is the complete chronological record capturing every phase, decision, challenge, mistake, and architectural breakthrough from Day 1 to the present.
 
@@ -127,7 +127,7 @@ This framework was built, refined, and perfected through continuous collaborativ
 
 ---
 
-## ðŸ“˜ Deep Dive: Real-World Problems, Mistakes, Solutions & Framework Improvements
+## Deep Dive: Real-World Problems, Mistakes, Solutions & Framework Improvements
 
 Below is an exhaustive reference table and detailed breakdown of every key problem encountered, mistake made, and architectural solution engineered.
 
@@ -179,7 +179,7 @@ OmniDesign-QA/
 
 ---
 
-## ðŸ› ï¸ Complete CLI Command Reference
+## Complete CLI Command Reference
 
 | NPM Command | Description | Deliverable Output |
 | :--- | :--- | :--- |
@@ -191,7 +191,7 @@ OmniDesign-QA/
 
 ---
 
-## ðŸŽ¨ Zero-Token Figma Data Extraction Workflow
+## Zero-Token Figma Data Extraction Workflow
 
 If you do not have a Figma API token:
 1. Open the Figma file link in Chrome, Edge, or the Figma Desktop App (View-Only permission is sufficient).
@@ -203,7 +203,7 @@ If you do not have a Figma API token:
 
 ---
 
-## ðŸ“Š Summary of Audit Results
+## Summary of Audit Results
 
 - **Desktop (1280px)**: **402 elements** across 9 Figma sections and 18 sub-sections.
 - **Tablet (744px)**: **272 elements** across 22 sub-sections (including 3 interactive slider suites).
@@ -213,7 +213,7 @@ If you do not have a Figma API token:
 
 ---
 
-## ðŸ“„ License
-Private & Confidential â€” Built for Paragon QA Automation.
+## License
+Private & Confidential  Built for Paragon QA Automation.
 
 
