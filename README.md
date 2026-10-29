@@ -1,24 +1,24 @@
-# Paragon Figma Design QA Framework
+﻿# Paragon Figma Design QA Framework
 
 An autonomous, enterprise-grade, senior human-QA automation framework engineered to audit live web storefronts (Shopify, Next.js, Headless) against exact Figma designs with pixel-level precision, dynamic CMS understanding, sub-section hierarchy mapping, and zero false positives.
 
 ---
 
-## 🌟 Key Highlights & Philosophy
+## ðŸŒŸ Key Highlights & Philosophy
 
 Traditional automated visual regression and pixel-matching tools fail because they flag intentional dynamic client content, localized currency, responsive container growth, and font rendering idiosyncrasies as visual bugs. This framework implements a **10-Year Senior Human QA standard**:
 
-1. **Strict 1:1 Pixel-Perfect Threshold (1–2px Rule)**: Applies a strict $\le 2\text{px}$ threshold for browser subpixel font and layout calculations. Any dimensional discrepancy $> 2\text{px}$ is automatically flagged as a layout defect.
-2. **Canonical Top-to-Bottom Figma Section Flow**: Audits and presents elements in the exact vertical Y-axis order of the Figma canvas (`Header` ➔ `HERO` ➔ `Featured` ➔ `marquee-black 1` ➔ `Collection` ➔ `About` ➔ `Categories` ➔ `Reviews` ➔ `Footer`).
-3. **Exact Figma Sub-Section Hierarchy**: Extracts and maps elements directly to their parent Figma sub-sections (e.g. `About ↳ Brand`, `About ↳ FK CANCER`, `Header ↳ Header`, `Header ↳ Banner`) so developers, designers, and QA engineers share an identical mental model.
+1. **Strict 1:1 Pixel-Perfect Threshold (1â€“2px Rule)**: Applies a strict $\le 2\text{px}$ threshold for browser subpixel font and layout calculations. Any dimensional discrepancy $> 2\text{px}$ is automatically flagged as a layout defect.
+2. **Canonical Top-to-Bottom Figma Section Flow**: Audits and presents elements in the exact vertical Y-axis order of the Figma canvas (`Header` âž” `HERO` âž” `Featured` âž” `marquee-black 1` âž” `Collection` âž” `About` âž” `Categories` âž” `Reviews` âž” `Footer`).
+3. **Exact Figma Sub-Section Hierarchy**: Extracts and maps elements directly to their parent Figma sub-sections (e.g. `About â†³ Brand`, `About â†³ FK CANCER`, `Header â†³ Header`, `Header â†³ Banner`) so developers, designers, and QA engineers share an identical mental model.
 4. **Discrete Spacing, Gap & Padding Auditing**: Evaluates section outer padding (T, R, B, L), section margins, carousel card-to-card distances, CSS grid row-gaps, column-gaps, and button internal text padding as separate, dedicated test cases.
 5. **Pure Live Preview Testing (Zero Background App Contamination)**: Queries only rendered storefront DOM nodes. Never scrapes third-party app scripts (e.g. wishlist apps) or backend Shopify admin data, ensuring bugs represent genuine customer-facing storefront defects.
 6. **Dynamic CMS / Catalog Intelligence**: Preserves Figma typography specs while displaying live preview catalog titles and localized currency values in brackets (e.g. `FK CANCER Coalition Vintage T-Shirt... [Actual Live: "FATWO ALLIANCE VINTAGE T-SHIRT"]`, `$309.00 [Actual Live: "Rs. 3,000.00"]`).
-7. **Punctuation & Micro-Vector Verification**: Audits geometric vector square dots (`0px` border-radius) versus round typographic full stops and interpunct middle dots (`·`).
+7. **Punctuation & Micro-Vector Verification**: Audits geometric vector square dots (`0px` border-radius) versus round typographic full stops and interpunct middle dots (`Â·`).
 
 ---
 
-## 📜 Full Project Journey: Chronological Evolution (Day 1 to Present)
+## ðŸ“œ Full Project Journey: Chronological Evolution (Day 1 to Present)
 
 This framework was built, refined, and perfected through continuous collaborative iterations over the course of multiple weeks. Below is the complete chronological record capturing every phase, decision, challenge, mistake, and architectural breakthrough from Day 1 to the present.
 
@@ -68,12 +68,12 @@ This framework was built, refined, and perfected through continuous collaborativ
 - **Square Dots vs. Round Periods vs. Middle Dots**:
   - Hero and About headers end in geometric vector square dots (`10x10px, border-radius: 0px`).
   - Collection and feature display headings use Barlow Condensed round typographic full stops (`border-radius: 50%` glyph).
-  - Review cards use middle dot interpuncts (`·`, unicode `U+00B7`).
+  - Review cards use middle dot interpuncts (`Â·`, unicode `U+00B7`).
   - Added dedicated test rows validating dot geometry, color, and dimensions.
 - **Carousel Progress Indicators**: Added explicit measurements for the Featured carousel track (`1240x2px`, thumb `220x2.5px`, `#F90202`) and Reviews carousel track (`926x2px`, thumb `164.4x2.5px`, `#F90202`).
 
-### Phase 7: Strict 1–2px Measurement Threshold & Sub-Section Architecture
-- **Elimination of Lenient Responsive Thresholds**: Replaced forgiving percentage-based or $\pm 10\text{px}$ tolerances with a strict **1–2px Senior QA Threshold**:
+### Phase 7: Strict 1â€“2px Measurement Threshold & Sub-Section Architecture
+- **Elimination of Lenient Responsive Thresholds**: Replaced forgiving percentage-based or $\pm 10\text{px}$ tolerances with a strict **1â€“2px Senior QA Threshold**:
   - Variance $\le 2\text{px}$ with valid subpixel rendering rationale: **`PASSED (SUBPIXEL)`**.
   - Variance $> 2\text{px}$: **`DEFECT`**.
 - **Header & Hero Structural Intelligence**:
@@ -82,7 +82,7 @@ This framework was built, refined, and perfected through continuous collaborativ
 - **Marquee 2 Star Images**: Corrected DOM queries from checking only inline `<svg>` to checking `<img src="...at-icons_star.svg">`, confirming 10 stars rendered at `16x16px` (matching Figma `17.6px` within 1.6px).
 - **Exact Figma Hierarchy & Canonical Top-to-Bottom Sequence**:
   - Reordered the entire audit report to mirror the Figma canvas from top to bottom.
-  - Named all sections and sub-sections strictly after Figma layers (e.g. `About ↳ Brand`, `About ↳ FK CANCER`).
+  - Named all sections and sub-sections strictly after Figma layers (e.g. `About â†³ Brand`, `About â†³ FK CANCER`).
 - **Explicit Box Model Auditing**: Injected discrete test cases for container padding, margins, card-to-card carousel gaps, and grid row/column gaps, bringing the final dataset to **402 comprehensive test items**.
 
 ### Phase 8: Genuine Chrome DevTools Protocol (CDP) Visual Proof Engine
@@ -127,7 +127,7 @@ This framework was built, refined, and perfected through continuous collaborativ
 
 ---
 
-## 📘 Deep Dive: Real-World Problems, Mistakes, Solutions & Framework Improvements
+## ðŸ“˜ Deep Dive: Real-World Problems, Mistakes, Solutions & Framework Improvements
 
 Below is an exhaustive reference table and detailed breakdown of every key problem encountered, mistake made, and architectural solution engineered.
 
@@ -141,7 +141,7 @@ Below is an exhaustive reference table and detailed breakdown of every key probl
 | **6** | False defect on Hero container height (`123px` variance) | Figma Hero frame `942px` overlapped Header frame `126px` at `Y: 8859` | Calculated Net Hero Content Area (`816px`), matching live storefront `819.0px` within `3.0px` |
 | **7** | False defect on Marquee 2 star icons | Script queried `querySelectorAll('svg')`; theme rendered `<img src="...star.svg">` | Enhanced DOM crawler to inspect both `<svg>` and `<img>` tags; confirmed 10 stars at `16x16px` |
 | **8** | Developer merged About & Categories sections | Developer placed About's 2nd subsection (`FK CANCER`) inside Categories | Flagged genuine container defect (`1847.6px`); measured internal child containers independently |
-| **9** | Reviews section height overshoot (`+13.8px`) | Developer placed 120px padding *after* the progress bar instead of enclosing it | Evaluated under strict 1–2px threshold and flagged as a true **Developer Padding Defect** |
+| **9** | Reviews section height overshoot (`+13.8px`) | Developer placed 120px padding *after* the progress bar instead of enclosing it | Evaluated under strict 1â€“2px threshold and flagged as a true **Developer Padding Defect** |
 | **10** | Missing spacing and gap visibility | Spacing was bundled into general container dimensions | Created **Layout Spacing / Gap & Margin** component category for discrete gap, padding, and margin auditing |
 | **11** | Unrendered HTML entities in reports | Figma breadcrumb separator `>` was escaped as `&rarr;` or raw text | Updated HTML report compiler to render clean, readable `>` breadcrumbs |
 | **12** | False positives from 18 viewports | Non-canonical viewports fluidly adapt via CSS media queries | Standardized on Figma's 3 canonical viewports (`1280px`, `744px`, `390px`) and built specialized responsive scaling rules |
@@ -151,42 +151,42 @@ Below is an exhaustive reference table and detailed breakdown of every key probl
 
 ---
 
-## 📁 Repository Structure
+## ðŸ“ Repository Structure
 
 ```text
 Paragon-Figma-Design-QA/
-├── figma/
-│   └── cache/               # Frozen offline Figma artboard JSON snapshots (Tracked via Git LFS)
-│       └── Dw1Dj8TdcDwpvnshkjytBG.json
-├── reports/
-│   └── audit/               # Master deliverables and generated reports
-│       ├── human-qa-report-desktop-1280-exact.html    # Strict 1:1 Section & Sub-Section HTML Report (402 items)
-│       ├── human-qa-report.html                       # Master Multi-Viewport Interactive HTML Report (929 items)
-│       ├── human-qa-report-18-viewports.html          # Full 18-Viewport Responsive HTML Suite (5,981 items)
-│       ├── qa-audit-multi-viewport-perfect.tsv        # Master Multi-Viewport TSV Spreadsheet
-│       ├── qa-audit-18-viewports-perfect.tsv          # Full 18-Viewport TSV Spreadsheet (Excel-Ready)
-│       └── screenshots/                               # Authentic Chrome DevTools Defect Evidence
-│           ├── defect-1-reviews-padding-overshoot.png # Unclipped DevTools Computed Box Model (120px)
-│           └── defect-2-merged-categories-wrapper.png # Unclipped DevTools Styles & Expanded Tree
-├── scripts/
-│   ├── generate-multi-viewport-report.ts       # Master multi-viewport HTML & TSV generator
-│   ├── generate-18-viewports-report.ts         # Complete 18-viewport responsive audit engine
-│   ├── build-exact-html-report.ts              # Strict 1280px exact sub-section report compiler
-│   ├── capture-real-chrome-native-devtools.js  # Dynamic Chrome DevTools Protocol defect capture
-│   ├── fetch-figma-data-dual-mode.ts           # Universal token & tokenless Figma ingestion
-│   ├── export-figma-catalog-without-token.js   # 1-click zero-token layer extractor for Figma console
-│   ├── inspect-sliders-in-live-sections.ts     # Slider and off-screen carousel DOM crawler
-│   ├── test-interactive-sliding.ts             # Swipe gesture and arrow navigation tester
-│   └── multi-viewport-audit-engine.ts          # Core multi-screen audit verification engine
-├── tests/                                      # Playwright test specs and visual assertions
-├── .env.example                                # Environment configuration template
-├── package.json                                # NPM scripts and dependencies
-└── tsconfig.json                               # TypeScript configuration
+â”œâ”€â”€ figma/
+â”‚   â””â”€â”€ cache/               # Frozen offline Figma artboard JSON snapshots (Tracked via Git LFS)
+â”‚       â””â”€â”€ Dw1Dj8TdcDwpvnshkjytBG.json
+â”œâ”€â”€ reports/
+â”‚   â””â”€â”€ audit/               # Master deliverables and generated reports
+â”‚       â”œâ”€â”€ human-qa-report-desktop-1280-exact.html    # Strict 1:1 Section & Sub-Section HTML Report (402 items)
+â”‚       â”œâ”€â”€ human-qa-report.html                       # Master Multi-Viewport Interactive HTML Report (929 items)
+â”‚       â”œâ”€â”€ human-qa-report-18-viewports.html          # Full 18-Viewport Responsive HTML Suite (5,981 items)
+â”‚       â”œâ”€â”€ qa-audit-multi-viewport-perfect.tsv        # Master Multi-Viewport TSV Spreadsheet
+â”‚       â”œâ”€â”€ qa-audit-18-viewports-perfect.tsv          # Full 18-Viewport TSV Spreadsheet (Excel-Ready)
+â”‚       â””â”€â”€ screenshots/                               # Authentic Chrome DevTools Defect Evidence
+â”‚           â”œâ”€â”€ defect-1-reviews-padding-overshoot.png # Unclipped DevTools Computed Box Model (120px)
+â”‚           â””â”€â”€ defect-2-merged-categories-wrapper.png # Unclipped DevTools Styles & Expanded Tree
+â”œâ”€â”€ scripts/
+â”‚   â”œâ”€â”€ generate-multi-viewport-report.ts       # Master multi-viewport HTML & TSV generator
+â”‚   â”œâ”€â”€ generate-18-viewports-report.ts         # Complete 18-viewport responsive audit engine
+â”‚   â”œâ”€â”€ build-exact-html-report.ts              # Strict 1280px exact sub-section report compiler
+â”‚   â”œâ”€â”€ capture-real-chrome-native-devtools.js  # Dynamic Chrome DevTools Protocol defect capture
+â”‚   â”œâ”€â”€ fetch-figma-data-dual-mode.ts           # Universal token & tokenless Figma ingestion
+â”‚   â”œâ”€â”€ export-figma-catalog-without-token.js   # 1-click zero-token layer extractor for Figma console
+â”‚   â”œâ”€â”€ inspect-sliders-in-live-sections.ts     # Slider and off-screen carousel DOM crawler
+â”‚   â”œâ”€â”€ test-interactive-sliding.ts             # Swipe gesture and arrow navigation tester
+â”‚   â””â”€â”€ multi-viewport-audit-engine.ts          # Core multi-screen audit verification engine
+â”œâ”€â”€ tests/                                      # Playwright test specs and visual assertions
+â”œâ”€â”€ .env.example                                # Environment configuration template
+â”œâ”€â”€ package.json                                # NPM scripts and dependencies
+â””â”€â”€ tsconfig.json                               # TypeScript configuration
 ```
 
 ---
 
-## 🛠️ Complete CLI Command Reference
+## ðŸ› ï¸ Complete CLI Command Reference
 
 | NPM Command | Description | Deliverable Output |
 | :--- | :--- | :--- |
@@ -198,7 +198,7 @@ Paragon-Figma-Design-QA/
 
 ---
 
-## 🎨 Zero-Token Figma Data Extraction Workflow
+## ðŸŽ¨ Zero-Token Figma Data Extraction Workflow
 
 If you do not have a Figma API token:
 1. Open the Figma file link in Chrome, Edge, or the Figma Desktop App (View-Only permission is sufficient).
@@ -210,7 +210,7 @@ If you do not have a Figma API token:
 
 ---
 
-## 📊 Summary of Audit Results
+## ðŸ“Š Summary of Audit Results
 
 - **Desktop (1280px)**: **402 elements** across 9 Figma sections and 18 sub-sections.
 - **Tablet (744px)**: **272 elements** across 22 sub-sections (including 3 interactive slider suites).
@@ -220,6 +220,7 @@ If you do not have a Figma API token:
 
 ---
 
-## 📄 License
-Private & Confidential — Built for Paragon QA Automation.
+## ðŸ“„ License
+Private & Confidential â€” Built for Paragon QA Automation.
+
 
