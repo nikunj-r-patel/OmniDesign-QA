@@ -1,4 +1,4 @@
-﻿# Paragon Figma Design QA Framework
+﻿# OmniDesign-QA Platform
 
 An autonomous, enterprise-grade, senior human-QA automation framework engineered to audit live web storefronts (Shopify, Next.js, Headless) against exact Figma designs with pixel-level precision, dynamic CMS understanding, sub-section hierarchy mapping, and zero false positives.
 
@@ -92,8 +92,8 @@ This framework was built, refined, and perfected through continuous collaborativ
   - Dynamically resized DevTools `SplitWidget` to allocate **760px** for the DOM tree and styles panel.
   - Automatically inspected culprit DOM elements (`div.reviews` and `div.feature-collections-wrapper`), activated the native **Computed Box Model Tab**, and rendered authentic DevTools green padding bands (`#93c47d`, 120px) and DOM hierarchy trees.
   - Deliverable proofs:
-    - [reports/audit/screenshots/defect-1-reviews-padding-overshoot.png](file:///d:/Paragon-Figma-Design-QA/reports/audit/screenshots/defect-1-reviews-padding-overshoot.png)
-    - [reports/audit/screenshots/defect-2-merged-categories-wrapper.png](file:///d:/Paragon-Figma-Design-QA/reports/audit/screenshots/defect-2-merged-categories-wrapper.png)
+    - [reports/audit/screenshots/defect-1-reviews-padding-overshoot.png](file:///d:/OmniDesign-QA/reports/audit/screenshots/defect-1-reviews-padding-overshoot.png)
+    - [reports/audit/screenshots/defect-2-merged-categories-wrapper.png](file:///d:/OmniDesign-QA/reports/audit/screenshots/defect-2-merged-categories-wrapper.png)
 
 ### Phase 9: Multi-Viewport Expansion (Desktop 1280, Tablet 744, Mobile 390)
 - **Investigating Why Element Counts Differ**:
@@ -107,7 +107,7 @@ This framework was built, refined, and perfected through continuous collaborativ
     3. Decorative Artwork & Secondary Eyebrows: Designers intentionally hide secondary banners on small screens to reduce clutter and payload.
 - **Interactive Carousel & Off-Screen Card Auditing**:
   - Solved the challenge of testing product and review sliders where only 1 or 2 cards are visible initially.
-  - Built automated carousel scanners ([scripts/inspect-sliders-in-live-sections.ts](file:///d:/Paragon-Figma-Design-QA/scripts/inspect-sliders-in-live-sections.ts) and [scripts/test-interactive-sliding.ts](file:///d:/Paragon-Figma-Design-QA/scripts/test-interactive-sliding.ts)).
+  - Built automated carousel scanners ([scripts/inspect-sliders-in-live-sections.ts](file:///d:/OmniDesign-QA/scripts/inspect-sliders-in-live-sections.ts) and [scripts/test-interactive-sliding.ts](file:///d:/OmniDesign-QA/scripts/test-interactive-sliding.ts)).
   - Audited **all 24 product cards** and **19 customer reviews** rendered in the DOM track, validating continuous swipe translation, previous/next navigation buttons, and dynamic progress bar synchronicity.
 
 ### Phase 10: Dedicated 18-Viewport Responsive Audit Suite
@@ -115,15 +115,15 @@ This framework was built, refined, and perfected through continuous collaborativ
   - Scaled testing across **18 distinct responsive viewports** (XL: 1728, 1600, 1920; Desktop: 1440, 1200, 1280, 1366, 1536, 1599; Tablet: 768, 834, 1024, 1199; Mobile: 402, 390, 375, 320, 430).
   - Evaluated **5,981 total component checks** with zero layout clipping, zero unwanted element overlaps, and 0px horizontal scroll overflow.
   - Engineered dedicated deliverables:
-    - [reports/audit/human-qa-report-18-viewports.html](file:///d:/Paragon-Figma-Design-QA/reports/audit/human-qa-report-18-viewports.html)
-    - [reports/audit/qa-audit-18-viewports-perfect.tsv](file:///d:/Paragon-Figma-Design-QA/reports/audit/qa-audit-18-viewports-perfect.tsv)
+    - [reports/audit/human-qa-report-18-viewports.html](file:///d:/OmniDesign-QA/reports/audit/human-qa-report-18-viewports.html)
+    - [reports/audit/qa-audit-18-viewports-perfect.tsv](file:///d:/OmniDesign-QA/reports/audit/qa-audit-18-viewports-perfect.tsv)
   - Synchronized exact 2-tier Sub-Section visual tree hierarchy, defect visualizer cards, and dedicated TSV subSection columns across all 18 viewports.
 
 ### Phase 11: Universal Dual-Mode Figma Ingestion (Zero-Token Architecture)
 - **The Challenge**: Needing a Figma API token at every step creates friction when clients cannot share API keys or when automated CI/CD runners lack secrets.
-- **The Solution**: Built a universal dual-mode ingestion engine ([scripts/fetch-figma-data-dual-mode.ts](file:///d:/Paragon-Figma-Design-QA/scripts/fetch-figma-data-dual-mode.ts)):
+- **The Solution**: Built a universal dual-mode ingestion engine ([scripts/fetch-figma-data-dual-mode.ts](file:///d:/OmniDesign-QA/scripts/fetch-figma-data-dual-mode.ts)):
   - **Mode A (Token Present)**: Makes a single REST API call to fetch and freeze the artboard.
-  - **Mode B (Token Empty)**: Automatically inspects the file URL via headless browser. If the user lacks View-Only permission, it triggers an instant alert. If View-Only access is available, the bundled [scripts/export-figma-catalog-without-token.js](file:///d:/Paragon-Figma-Design-QA/scripts/export-figma-catalog-without-token.js) extracts 100% of the layer-wise font, color, coordinate, and vector data directly from memory.
+  - **Mode B (Token Empty)**: Automatically inspects the file URL via headless browser. If the user lacks View-Only permission, it triggers an instant alert. If View-Only access is available, the bundled [scripts/export-figma-catalog-without-token.js](file:///d:/OmniDesign-QA/scripts/export-figma-catalog-without-token.js) extracts 100% of the layer-wise font, color, coordinate, and vector data directly from memory.
 
 ---
 
@@ -197,7 +197,7 @@ If you do not have a Figma API token:
 1. Open the Figma file link in Chrome, Edge, or the Figma Desktop App (View-Only permission is sufficient).
 2. Select the target artboard (e.g. `Desktop 1280`, `Tablet 744`, or `Mobile 390`).
 3. Press **F12** (Developer Tools) and open the **Console** tab.
-4. Copy and paste the script from [scripts/export-figma-catalog-without-token.js](file:///d:/Paragon-Figma-Design-QA/scripts/export-figma-catalog-without-token.js) and press Enter.
+4. Copy and paste the script from [scripts/export-figma-catalog-without-token.js](file:///d:/OmniDesign-QA/scripts/export-figma-catalog-without-token.js) and press Enter.
 5. The browser will instantly download `figma-complete-catalog.json`.
 6. Place the file into `reports/audit/` and run `npm run qa:audit` or `npm run qa:18-viewports`.
 
@@ -214,6 +214,6 @@ If you do not have a Figma API token:
 ---
 
 ## License
-Private & Confidential  Built for Paragon QA Automation.
+Private & Confidential � Built with OmniDesign-QA Platform.
 
 
