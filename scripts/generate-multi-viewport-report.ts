@@ -17,28 +17,41 @@ async function run() {
 
   // 1. Build items for all 3 viewports
   // Load the exact 402 items directly from the verified 1280 TSV
-  const desktopTsvLines = fs.readFileSync('reports/audit/qa-audit-desktop-1280-exact-measurements.tsv', 'utf8')
-    .split(/\r?\n/)
-    .filter(Boolean);
+  let desktopItems: AuditItem[] = [];
+  const exactTsvPath = 'reports/audit/qa-audit-desktop-1280-exact-measurements.tsv';
 
-  const desktopItems: AuditItem[] = [];
-  for (let i = 1; i < desktopTsvLines.length; i++) {
-    const parts = desktopTsvLines[i].split('\t');
-    desktopItems.push({
-      viewport: 'Desktop (1280px)',
-      section: parts[1],
-      subSection: parts[2],
-      category: parts[3],
-      elementName: parts[4],
-      figmaPath: parts[5],
-      status: parts[6],
-      expectedSpec: parts[7],
-      liveMeasuredSpec: parts[8],
-      difference: parts[9],
-      severity: parts[10],
-      rationale: parts[11],
-      userComment: parts[12] || '',
-    });
+  if (fs.existsSync(exactTsvPath)) {
+    const desktopTsvLines = fs.readFileSync(exactTsvPath, 'utf8')
+      .split(/\r?\n/)
+      .filter(Boolean);
+
+    for (let i = 1; i < desktopTsvLines.length; i++) {
+      const parts = desktopTsvLines[i].split('\t');
+      desktopItems.push({
+        viewport: 'Desktop (1280px)',
+        section: parts[1],
+        subSection: parts[2],
+        category: parts[3],
+        elementName: parts[4],
+        figmaPath: parts[5],
+        status: parts[6],
+        expectedSpec: parts[7],
+        liveMeasuredSpec: parts[8],
+        difference: parts[9],
+        severity: parts[10],
+        rationale: parts[11],
+        userComment: parts[12] || '',
+      });
+    }
+  } else {
+    console.log('?? Fresh project: Building Desktop audit dynamically from catalog...');
+    const catalogPath = fs.existsSync('reports/audit/figma-complete-catalog.json')
+      ? 'reports/audit/figma-complete-catalog.json'
+      : 'reports/audit/figma-desktop-complete-catalog.json';
+    const reportPath = 'reports/audit/hierarchical-human-qa-report-desktop-1280.json';
+    if (fs.existsSync(catalogPath) && fs.existsSync(reportPath)) {
+      desktopItems = buildAuditedItemsForViewport('Desktop (1280px)', catalogPath, reportPath);
+    }
   }
 
   const tabletItems = buildAuditedItemsForViewport(

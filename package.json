@@ -21,7 +21,8 @@
     "qa:18-viewports": "npx tsx scripts/generate-18-viewports-report.ts",
     "qa:exact-1280": "npx tsx scripts/build-exact-html-report.ts",
     "qa:devtools-evidence": "node scripts/capture-real-chrome-native-devtools.js",
-    "qa:screenshots-18": "npx tsx scripts/capture-18-viewports-screenshots.ts"
+    "qa:screenshots-18": "npx tsx scripts/capture-18-viewports-screenshots.ts",
+    "qa:audit:fresh": "npx tsx scripts/audit-fresh-project.ts"
   },
   "devDependencies": {
     "@figma/rest-api-spec": "^0.42.0",

@@ -222,28 +222,32 @@ async function run() {
   let grandTotalElements = 0;
   const allTsvRows: AuditItem[] = [];
 
-  const desktopTsvLines = fs.readFileSync('reports/audit/qa-audit-desktop-1280-exact-measurements.tsv', 'utf8')
-    .split(/\r?\n/)
-    .filter(Boolean);
-
   const verifiedDesktopBaseItems: AuditItem[] = [];
-  for (let i = 1; i < desktopTsvLines.length; i++) {
-    const parts = desktopTsvLines[i].split('\t');
-    verifiedDesktopBaseItems.push({
-      viewport: 'Desktop',
-      section: parts[1],
-      subSection: parts[2],
-      category: parts[3],
-      elementName: parts[4],
-      figmaPath: parts[5],
-      status: parts[6],
-      expectedSpec: parts[7],
-      liveMeasuredSpec: parts[8],
-      difference: parts[9],
-      severity: parts[10],
-      rationale: parts[11],
-      userComment: parts[12] || '',
-    });
+  const exactTsvPath = 'reports/audit/qa-audit-desktop-1280-exact-measurements.tsv';
+
+  if (fs.existsSync(exactTsvPath)) {
+    const desktopTsvLines = fs.readFileSync(exactTsvPath, 'utf8')
+      .split(/\r?\n/)
+      .filter(Boolean);
+
+    for (let i = 1; i < desktopTsvLines.length; i++) {
+      const parts = desktopTsvLines[i].split('\t');
+      verifiedDesktopBaseItems.push({
+        viewport: 'Desktop',
+        section: parts[1],
+        subSection: parts[2],
+        category: parts[3],
+        elementName: parts[4],
+        figmaPath: parts[5],
+        status: parts[6],
+        expectedSpec: parts[7],
+        liveMeasuredSpec: parts[8],
+        difference: parts[9],
+        severity: parts[10],
+        rationale: parts[11],
+        userComment: parts[12] || '',
+      });
+    }
   }
 
   for (const vp of EIGHTEEN_VIEWPORTS) {
