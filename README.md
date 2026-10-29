@@ -151,37 +151,30 @@ Below is an exhaustive reference table and detailed breakdown of every key probl
 
 ---
 
-## ðŸ“ Repository Structure
+## Repository Structure
 
 ```text
-Paragon-Figma-Design-QA/
-â”œâ”€â”€ figma/
-â”‚   â””â”€â”€ cache/               # Frozen offline Figma artboard JSON snapshots (Tracked via Git LFS)
-â”‚       â””â”€â”€ Dw1Dj8TdcDwpvnshkjytBG.json
-â”œâ”€â”€ reports/
-â”‚   â””â”€â”€ audit/               # Master deliverables and generated reports
-â”‚       â”œâ”€â”€ human-qa-report-desktop-1280-exact.html    # Strict 1:1 Section & Sub-Section HTML Report (402 items)
-â”‚       â”œâ”€â”€ human-qa-report.html                       # Master Multi-Viewport Interactive HTML Report (929 items)
-â”‚       â”œâ”€â”€ human-qa-report-18-viewports.html          # Full 18-Viewport Responsive HTML Suite (5,981 items)
-â”‚       â”œâ”€â”€ qa-audit-multi-viewport-perfect.tsv        # Master Multi-Viewport TSV Spreadsheet
-â”‚       â”œâ”€â”€ qa-audit-18-viewports-perfect.tsv          # Full 18-Viewport TSV Spreadsheet (Excel-Ready)
-â”‚       â””â”€â”€ screenshots/                               # Authentic Chrome DevTools Defect Evidence
-â”‚           â”œâ”€â”€ defect-1-reviews-padding-overshoot.png # Unclipped DevTools Computed Box Model (120px)
-â”‚           â””â”€â”€ defect-2-merged-categories-wrapper.png # Unclipped DevTools Styles & Expanded Tree
-â”œâ”€â”€ scripts/
-â”‚   â”œâ”€â”€ generate-multi-viewport-report.ts       # Master multi-viewport HTML & TSV generator
-â”‚   â”œâ”€â”€ generate-18-viewports-report.ts         # Complete 18-viewport responsive audit engine
-â”‚   â”œâ”€â”€ build-exact-html-report.ts              # Strict 1280px exact sub-section report compiler
-â”‚   â”œâ”€â”€ capture-real-chrome-native-devtools.js  # Dynamic Chrome DevTools Protocol defect capture
-â”‚   â”œâ”€â”€ fetch-figma-data-dual-mode.ts           # Universal token & tokenless Figma ingestion
-â”‚   â”œâ”€â”€ export-figma-catalog-without-token.js   # 1-click zero-token layer extractor for Figma console
-â”‚   â”œâ”€â”€ inspect-sliders-in-live-sections.ts     # Slider and off-screen carousel DOM crawler
-â”‚   â”œâ”€â”€ test-interactive-sliding.ts             # Swipe gesture and arrow navigation tester
-â”‚   â””â”€â”€ multi-viewport-audit-engine.ts          # Core multi-screen audit verification engine
-â”œâ”€â”€ tests/                                      # Playwright test specs and visual assertions
-â”œâ”€â”€ .env.example                                # Environment configuration template
-â”œâ”€â”€ package.json                                # NPM scripts and dependencies
-â””â”€â”€ tsconfig.json                               # TypeScript configuration
+OmniDesign-QA/
++-- figma/
++-- cache/               # Offline Figma artboard JSON snapshots (.gitkeep)
++-- reports/
++-- audit/               # Master deliverables and generated reports (.gitkeep)
++-- screenshots/     # DevTools box models & 18-viewport screenshots (.gitkeep)
++-- scripts/
++-- generate-multi-viewport-report.ts       # Master multi-viewport HTML & TSV generator
++-- generate-18-viewports-report.ts         # Complete 18-viewport responsive audit engine
++-- build-exact-html-report.ts              # Strict 1280px exact sub-section report compiler
++-- capture-real-chrome-native-devtools.js  # Dynamic Chrome DevTools Protocol defect capture
++-- capture-18-viewports-screenshots.ts     # Automated 18-viewport full-page screenshot capture
++-- fetch-figma-data-dual-mode.ts           # Universal token & tokenless Figma ingestion
++-- export-figma-catalog-without-token.js   # 1-click zero-token layer extractor for Figma console
++-- inspect-sliders-in-live-sections.ts     # Slider and off-screen carousel DOM crawler
++-- test-interactive-sliding.ts             # Swipe gesture and arrow navigation tester
++-- multi-viewport-audit-engine.ts          # Core multi-screen audit verification engine
++-- tests/                                      # Playwright test specs and visual assertions
++-- .env.example                                # Environment configuration template
++-- package.json                                # NPM scripts and dependencies
++-- tsconfig.json                               # TypeScript configuration
 ```
 
 ---
