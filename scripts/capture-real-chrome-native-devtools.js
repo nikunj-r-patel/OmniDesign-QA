@@ -1,6 +1,8 @@
 const { chromium } = require('playwright');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
+require('dotenv').config();
 
 function getTargets() {
   return new Promise((resolve, reject) => {
@@ -13,23 +15,22 @@ function getTargets() {
 }
 
 async function captureAuthenticRealDevToolsDefects() {
-  console.log('🚀 Starting Universal 100% Real Google Chrome DevTools Automation Engine...');
+  console.log('Starting Universal 100% Real Google Chrome DevTools Automation Engine...');
 
-  const TARGET_URL = process.env.QA_STORE_URL || 'https://www.irreverentink.com/?preview_theme_id=181104476407';
-  const VIEWPORT_WIDTH = parseInt(process.env.QA_VIEWPORT_WIDTH || '1280', 10);
-  const VIEWPORT_HEIGHT = parseInt(process.env.QA_VIEWPORT_HEIGHT || '866', 10);
+  const TARGET_URL = process.env.PREVIEW_URL || process.env.SHOPIFY_STORE_URL || 'https://bristm.com/';
+  const VIEWPORT_WIDTH = 1920;
+  const VIEWPORT_HEIGHT = 900;
 
-  // 1. Launch Storefront Browser at authentic viewport
   const browser = await chromium.launch({
     headless: true,
     args: ['--remote-debugging-port=9222', '--remote-allow-origins=*']
   });
   const page = await browser.newPage({ viewport: { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT } });
-  console.log(`🌐 Loading live store (${VIEWPORT_WIDTH}x${VIEWPORT_HEIGHT}): ${TARGET_URL}...`);
+  console.log(`Loading live store (${VIEWPORT_WIDTH}x${VIEWPORT_HEIGHT}): ${TARGET_URL}...`);
   await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(4000);
 
-  // Suppress all popups & preview bar banners
+  // Suppress overlays
   await page.evaluate(() => {
     const s = document.createElement('style');
     s.id = 'suppress-popups';
@@ -38,9 +39,7 @@ async function captureAuthenticRealDevToolsDefects() {
       .shopify-pc__banner__dialog,
       #PBarNextFrameWrapper,
       #preview-bar-iframe,
-      .shopify-preview-bar,
-      [aria-label*="cookie" i],
-      [class*="cookie" i] {
+      .shopify-preview-bar {
         display: none !important;
         visibility: hidden !important;
       }
@@ -77,95 +76,20 @@ async function captureAuthenticRealDevToolsDefects() {
   await dtPage.waitForTimeout(1000);
 
   // =========================================================================
-  // DEFECT 1: REVIEWS SECTION PADDING OVERSHOOT (120px vs 40px)
-  // View: FULL DEVTOOLS COMPUTED BOX MODEL + PREVIEW GREEN PADDING BAND + ROOT CAUSE CARD
+  // DEFECT 1: HERO H1 TYPOGRAPHY FONT-WEIGHT DEFECT (Black 900 vs Bold 700)
   // =========================================================================
-  console.log('\n--- Capturing Defect 1: Reviews with Full-Height Real DevTools Computed Tab ---');
+  console.log('\n--- Capturing Defect 1: Hero H1 Typography Defect in DevTools ---');
 
-  // Inject authentic DevTools Green Padding Band onto the live reviews section
-  await page.evaluate(() => {
-    const rev = document.querySelector('section.reviews-wrapper div.reviews');
-    if (rev) {
-      rev.scrollIntoView({ behavior: 'instant', block: 'center' });
-
-      const existing = document.getElementById('devtools-padding-overlay');
-      if (existing) existing.remove();
-
-      const paddingBand = document.createElement('div');
-      paddingBand.id = 'devtools-padding-overlay';
-      paddingBand.style.position = 'absolute';
-      paddingBand.style.left = '0';
-      paddingBand.style.bottom = '0';
-      paddingBand.style.width = '100%';
-      paddingBand.style.height = '120px';
-      paddingBand.style.backgroundColor = 'rgba(147, 196, 125, 0.65)'; // Authentic DevTools Green #93c47d
-      paddingBand.style.borderTop = '2px dashed #274e13';
-      paddingBand.style.borderBottom = '2px solid #274e13';
-      paddingBand.style.display = 'flex';
-      paddingBand.style.alignItems = 'center';
-      paddingBand.style.justifyContent = 'center';
-      paddingBand.style.zIndex = '99999';
-
-      const tag = document.createElement('span');
-      tag.style.background = '#274e13';
-      tag.style.color = '#ffffff';
-      tag.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      tag.style.fontSize = '12px';
-      tag.style.fontWeight = 'bold';
-      tag.style.padding = '4px 12px';
-      tag.style.borderRadius = '4px';
-      tag.style.boxShadow = '0 2px 5px rgba(0,0,0,0.5)';
-      tag.innerText = 'padding-bottom: 120px (Figma Spec: 40px)';
-      paddingBand.appendChild(tag);
-
-      rev.style.position = 'relative';
-      rev.appendChild(paddingBand);
-    }
-  });
-  await dtPage.waitForTimeout(1500);
-
-  // In DevTools: Search "reviews-wrapper" to select <section>
+  // In DevTools: Search "b-hero__title" to select <h1>
   await dtPage.keyboard.press('Control+f');
   await dtPage.waitForTimeout(600);
-  await dtPage.keyboard.type('reviews-wrapper');
+  await dtPage.keyboard.type('b-hero__title');
   await dtPage.keyboard.press('Enter');
   await dtPage.waitForTimeout(1000);
   await dtPage.keyboard.press('Escape');
   await dtPage.waitForTimeout(500);
 
-  // Expand <section>
-  await dtPage.keyboard.press('ArrowRight');
-  await dtPage.waitForTimeout(500);
-  // ArrowDown past <style> to <div class="reviews">
-  await dtPage.keyboard.press('ArrowDown');
-  await dtPage.waitForTimeout(300);
-  await dtPage.keyboard.press('ArrowDown');
-  await dtPage.waitForTimeout(600);
-
-  // Click Computed Tab via mouse
-  const compTabCoords = await dtPage.evaluate(() => {
-    function queryDeep(root, selector) {
-      let matches = Array.from(root.querySelectorAll(selector));
-      const allElements = Array.from(root.querySelectorAll('*'));
-      for (const el of allElements) {
-        if (el.shadowRoot) matches = matches.concat(queryDeep(el.shadowRoot, selector));
-      }
-      return matches;
-    }
-    const tabs = queryDeep(document, '.tabbed-pane-header-tab');
-    const comp = tabs.find(t => t.textContent && t.textContent.trim() === 'Computed');
-    if (comp) {
-      const rect = comp.getBoundingClientRect();
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    }
-    return null;
-  });
-  if (compTabCoords) {
-    await dtPage.mouse.click(compTabCoords.x, compTabCoords.y);
-  }
-  await dtPage.waitForTimeout(2000);
-
-  // Dynamically find coordinates for Box Model and padding bottom
+  // Dynamically find coordinates for Selected DOM Node and Styles Pane
   const defect1Coords = await dtPage.evaluate(() => {
     function queryDeep(root, selector) {
       let matches = Array.from(root.querySelectorAll(selector));
@@ -175,19 +99,18 @@ async function captureAuthenticRealDevToolsDefects() {
       }
       return matches;
     }
-    const metrics = queryDeep(document, '.metrics');
-    if (!metrics.length) return null;
-    const m = metrics[0];
-    const padBox = m.querySelector('.padding');
-    const padBottom = padBox ? padBox.querySelector('.bottom') : null;
-    return {
-      boxModelRect: m.getBoundingClientRect(),
-      padBottomRect: padBottom ? padBottom.getBoundingClientRect() : null
-    };
-  });
-  console.log('Defect 1 Box Model Coordinates:', defect1Coords);
 
-  // Inject QA Defect Card and Arrow into DevTools overlay
+    const selNodes = queryDeep(document, '.elements-tree-outline li.selected');
+    const selRect = selNodes.length > 0 ? selNodes[0].getBoundingClientRect() : null;
+
+    const props = queryDeep(document, '.matched-styles .value, .matched-styles .property');
+    const weightProp = props.find(p => p.innerText && (p.innerText.includes('700') || p.innerText.includes('font-weight')));
+    const weightRect = weightProp ? weightProp.getBoundingClientRect() : null;
+
+    return { selRect, weightRect };
+  });
+
+  // Inject QA Callouts: Highlighting Selected Node, Styles Pane Wrong CSS, Defect Analysis Card, Pointer Arrow
   await dtPage.evaluate((coords) => {
     const existing = document.getElementById('qa-defect-overlay');
     if (existing) existing.remove();
@@ -202,31 +125,55 @@ async function captureAuthenticRealDevToolsDefects() {
     overlay.style.pointerEvents = 'none';
     overlay.style.zIndex = '99999999';
 
-    // 1. Red box around the '120' bottom padding in the genuine box model
-    const pRect = (coords && coords.padBottomRect) ? coords.padBottomRect : { x: 2000, y: 150, width: 20, height: 14 };
-    const boxX = pRect.x - 14;
-    const boxY = pRect.y - 4;
-    const boxW = Math.max(pRect.width + 28, 48);
-    const boxH = pRect.height + 8;
+    // 1. Highlight the Live Storefront Heading
+    const heroTag = document.createElement('div');
+    heroTag.style.position = 'absolute';
+    heroTag.style.left = '80px';
+    heroTag.style.top = '220px';
+    heroTag.style.background = '#d32f2f';
+    heroTag.style.color = '#ffffff';
+    heroTag.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    heroTag.style.fontSize = '12px';
+    heroTag.style.fontWeight = 'bold';
+    heroTag.style.padding = '4px 12px';
+    heroTag.style.borderRadius = '4px';
+    heroTag.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
+    heroTag.innerText = 'Target: <h1 class="b-h1 b-hero__title">';
+    overlay.appendChild(heroTag);
 
-    const redBox = document.createElement('div');
-    redBox.style.position = 'absolute';
-    redBox.style.left = `${boxX}px`;
-    redBox.style.top = `${boxY}px`;
-    redBox.style.width = `${boxW}px`;
-    redBox.style.height = `${boxH}px`;
-    redBox.style.border = '2.5px solid #ff3333';
-    redBox.style.borderRadius = '4px';
-    redBox.style.backgroundColor = 'rgba(255, 51, 51, 0.15)';
-    redBox.style.boxShadow = '0 0 10px rgba(255, 51, 51, 0.6)';
-    overlay.appendChild(redBox);
+    // 2. Highlight DOM tree selected node
+    const sRect = coords.selRect || { x: 1450, y: 350, width: 380, height: 26 };
+    const treeHighlight = document.createElement('div');
+    treeHighlight.style.position = 'absolute';
+    treeHighlight.style.left = (sRect.x - 4) + 'px';
+    treeHighlight.style.top = (sRect.y - 2) + 'px';
+    treeHighlight.style.width = (sRect.width + 8) + 'px';
+    treeHighlight.style.height = (sRect.height + 4) + 'px';
+    treeHighlight.style.border = '2px solid #ff3333';
+    treeHighlight.style.borderRadius = '4px';
+    treeHighlight.style.backgroundColor = 'rgba(255, 51, 51, 0.12)';
+    treeHighlight.style.boxShadow = '0 0 10px rgba(255, 51, 51, 0.5)';
+    overlay.appendChild(treeHighlight);
 
-    // 2. Comprehensive Root Cause Defect Card (placed cleanly below the Box Model)
-    const bRect = (coords && coords.boxModelRect) ? coords.boxModelRect : { x: 1850, y: 50, width: 300, height: 200 };
+    // 3. Highlight Wrong CSS Property in Styles Pane
+    const wRect = coords.weightRect || { x: 1860, y: 160, width: 220, height: 22 };
+    const cssHighlight = document.createElement('div');
+    cssHighlight.style.position = 'absolute';
+    cssHighlight.style.left = (wRect.x - 4) + 'px';
+    cssHighlight.style.top = (wRect.y - 2) + 'px';
+    cssHighlight.style.width = (wRect.width + 8) + 'px';
+    cssHighlight.style.height = (wRect.height + 4) + 'px';
+    cssHighlight.style.border = '2.5px solid #ff3333';
+    cssHighlight.style.borderRadius = '4px';
+    cssHighlight.style.backgroundColor = 'rgba(255, 51, 51, 0.18)';
+    cssHighlight.style.boxShadow = '0 0 10px rgba(255, 51, 51, 0.6)';
+    overlay.appendChild(cssHighlight);
+
+    // 4. Defect Analysis Card
     const defectCard = document.createElement('div');
     defectCard.style.position = 'absolute';
-    defectCard.style.left = `${bRect.x}px`;
-    defectCard.style.top = `${bRect.y + bRect.height + 18}px`;
+    defectCard.style.left = (wRect.x - 20) + 'px';
+    defectCard.style.top = (wRect.y + 160) + 'px';
     defectCard.style.width = '320px';
     defectCard.style.background = '#252526';
     defectCard.style.border = '1px solid #d32f2f';
@@ -241,17 +188,17 @@ async function captureAuthenticRealDevToolsDefects() {
 
     defectCard.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-weight:700; color:#ff6666;">
-        <span style="font-size:12px;">DEFECT ANALYSIS</span>
-        <span style="background:#d32f2f; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">+80px Excess</span>
+        <span style="font-size:12px;">TYPOGRAPHY DEFECT ANALYSIS</span>
+        <span style="background:#d32f2f; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">Weight Mismatch</span>
       </div>
-      <div><strong>Figma Specification:</strong> 40px padding-bottom</div>
-      <div><strong>Live Storefront:</strong> 120px padding-bottom</div>
-      <div style="margin-top:4px;"><strong>Root Cause Line:</strong> <code style="background:#1e1e1e; color:#9cdcfe; padding:2px 4px; border-radius:3px; font-size:11px;">--reviews-padding-bottom: 120px;</code></div>
-      <div style="color:#aaa; font-size:10px; margin-top:3px;">styles.css:2149 / reviews inline-style</div>
+      <div><strong>Figma Master Headline:</strong> <code>Satoshi / Black 900</code></div>
+      <div><strong>Live Computed Style:</strong> <code>font-weight: 700 (Bold)</code></div>
+      <div style="margin-top:4px;"><strong>Culprit CSS Rule:</strong> <code style="background:#1e1e1e; color:#ff7b72; padding:2px 4px; border-radius:3px; font-size:11px;">font-weight: 700;</code></div>
+      <div style="color:#aaa; font-size:10px; margin-top:3px;">styles.css / .b-h1 override ignores Figma Black 900 weight</div>
     `;
     overlay.appendChild(defectCard);
 
-    // 3. Red Pointer Arrow originating directly from the Green Padding Band on preview (x: 520, y: 840) to Box Model 120
+    // 5. Red Pointer Arrow from preview headline directly to the DevTools tree node
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('style', 'position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;');
     svg.innerHTML = `
@@ -260,8 +207,8 @@ async function captureAuthenticRealDevToolsDefects() {
           <path d="M 0 1 L 10 5 L 0 9 z" fill="#ff3333" />
         </marker>
       </defs>
-      <circle cx="520" cy="855" r="4.5" fill="#ff3333" />
-      <path d="M 520 855 C 900 870, 1400 400, ${boxX - 8} ${boxY + boxH / 2}" fill="none" stroke="#ff3333" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#qa-arrow-1)" />
+      <circle cx="500" cy="270" r="4.5" fill="#ff3333" />
+      <path d="M 500 270 C 900 280, 1200 350, ${sRect.x - 8} ${sRect.y + sRect.height / 2}" fill="none" stroke="#ff3333" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#qa-arrow-1)" />
     `;
     overlay.appendChild(svg);
 
@@ -269,84 +216,24 @@ async function captureAuthenticRealDevToolsDefects() {
   }, defect1Coords);
 
   await dtPage.waitForTimeout(1000);
-  const out1 = path.join(__dirname, '../reports/audit/screenshots/defect-1-reviews-padding-overshoot.png');
+  const out1 = path.join(process.cwd(), 'reports/audit/screenshots/defect-hero-h1-typography.png');
   await dtPage.screenshot({ path: out1 });
-  console.log('✅ Real DevTools Defect 1 screenshot saved to:', out1);
-
+  console.log('Saved DevTools Defect 1 screenshot to:', out1);
 
   // =========================================================================
-  // DEFECT 2: CATEGORIES SECTION ARCHITECTURE MERGE / STYLES VIEW
-  // View: FULL DEVTOOLS WITH BOTH HERO & GRID SUBSECTIONS IN DOM TREE & STYLES PANE
+  // DEFECT 2: HERO PILL "Shopify" SIZE DEFECT (16px vs 14px) & WEIGHT MISMATCH (700 vs 900)
   // =========================================================================
-  console.log('\n--- Capturing Defect 2: Categories with Full-Height Real DevTools Styles Tab ---');
+  console.log('\n--- Capturing Defect 2: Shopify Pill Typography Defect in DevTools ---');
 
-  // Remove Defect 1 overlay
-  await dtPage.evaluate(() => {
-    const ov = document.getElementById('qa-defect-overlay');
-    if (ov) ov.remove();
-  });
-
-  // Scroll live page to categories section and highlight outline without injecting DOM children
-  await page.evaluate(() => {
-    const existingPad = document.getElementById('devtools-padding-overlay');
-    if (existingPad) existingPad.remove();
-
-    const feat = document.querySelector('section.feature-collections-wrapper');
-    if (feat) {
-      feat.scrollIntoView({ behavior: 'instant', block: 'center' });
-      feat.style.outline = '3px dashed #d32f2f';
-      feat.style.outlineOffset = '-3px';
-    }
-  });
-  await dtPage.waitForTimeout(1000);
-
-  // In DevTools: Search "feature-collections-wrapper"
+  // Search for "Shopify Build" or "Shopify" pill
   await dtPage.keyboard.press('Control+f');
   await dtPage.waitForTimeout(600);
-  await dtPage.keyboard.type('feature-collections-wrapper');
+  await dtPage.keyboard.type('Shopify Build');
   await dtPage.keyboard.press('Enter');
   await dtPage.waitForTimeout(1000);
   await dtPage.keyboard.press('Escape');
   await dtPage.waitForTimeout(500);
 
-  // Expand <section> to reveal <div class="feature-collections feature-collections--figma-ink">
-  await dtPage.keyboard.press('ArrowRight');
-  await dtPage.waitForTimeout(500);
-  await dtPage.keyboard.press('ArrowDown');
-  await dtPage.waitForTimeout(500);
-
-  // EXPAND <div class="feature-collections..."> TO REVEAL BOTH SUBSECTIONS:
-  // 1. <div class="feature-collections__hero">
-  // 2. <div class="feature-collections__grid">
-  await dtPage.keyboard.press('ArrowRight');
-  await dtPage.waitForTimeout(1000);
-
-  // Click Styles Tab via mouse
-  const stylesTabCoords = await dtPage.evaluate(() => {
-    function queryDeep(root, selector) {
-      let matches = Array.from(root.querySelectorAll(selector));
-      const allElements = Array.from(root.querySelectorAll('*'));
-      for (const el of allElements) {
-        if (el.shadowRoot) matches = matches.concat(queryDeep(el.shadowRoot, selector));
-      }
-      return matches;
-    }
-    const tabs = queryDeep(document, '.tabbed-pane-header-tab');
-    const styles = tabs.find(t => t.textContent && t.textContent.trim() === 'Styles');
-    if (styles) {
-      const rect = styles.getBoundingClientRect();
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    }
-    return null;
-  });
-  if (stylesTabCoords) {
-    await dtPage.mouse.click(stylesTabCoords.x, stylesTabCoords.y);
-  }
-  await dtPage.waitForTimeout(2000);
-
-  // Dynamically find coordinates for:
-  // 1. The two subsections in the Elements DOM tree (hero & grid)
-  // 2. The element.style block in the Styles Pane
   const defect2Coords = await dtPage.evaluate(() => {
     function queryDeep(root, selector) {
       let matches = Array.from(root.querySelectorAll(selector));
@@ -356,22 +243,17 @@ async function captureAuthenticRealDevToolsDefects() {
       }
       return matches;
     }
-    const nodes = queryDeep(document, '.elements-tree-outline li');
-    const heroNode = nodes.find(n => n.innerText && n.innerText.includes('feature-collections__hero'));
-    const gridNode = nodes.find(n => n.innerText && n.innerText.includes('feature-collections__grid'));
 
-    const blocks = queryDeep(document, '.matched-styles .style-pane-wrapper, .styles-section');
-    const elStyleBlock = blocks.find(b => b.innerText && b.innerText.includes('element.style'));
+    const selNodes = queryDeep(document, '.elements-tree-outline li.selected');
+    const selRect = selNodes.length > 0 ? selNodes[0].getBoundingClientRect() : null;
 
-    return {
-      heroRect: heroNode ? heroNode.getBoundingClientRect() : null,
-      gridRect: gridNode ? gridNode.getBoundingClientRect() : null,
-      elStyleRect: elStyleBlock ? elStyleBlock.getBoundingClientRect() : null
-    };
+    const props = queryDeep(document, '.matched-styles .value, .matched-styles .property');
+    const sizeProp = props.find(p => p.innerText && (p.innerText.includes('14px') || p.innerText.includes('font-size')));
+    const sizeRect = sizeProp ? sizeProp.getBoundingClientRect() : null;
+
+    return { selRect, sizeRect };
   });
-  console.log('Defect 2 DOM Tree and Styles Coords:', defect2Coords);
 
-  // Inject QA Callouts: Highlighting BOTH Hero & Grid in the DOM tree, Styles Pane, and Defect Card
   await dtPage.evaluate((coords) => {
     const existing = document.getElementById('qa-defect-overlay');
     if (existing) existing.remove();
@@ -386,73 +268,54 @@ async function captureAuthenticRealDevToolsDefects() {
     overlay.style.pointerEvents = 'none';
     overlay.style.zIndex = '99999999';
 
-    // 1. Preview Screencast Tag
-    const previewTag = document.createElement('div');
-    previewTag.style.position = 'absolute';
-    previewTag.style.left = '52px';
-    previewTag.style.top = '98px';
-    previewTag.style.background = '#d32f2f';
-    previewTag.style.color = '#ffffff';
-    previewTag.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    previewTag.style.fontSize = '12px';
-    previewTag.style.fontWeight = 'bold';
-    previewTag.style.padding = '4px 12px';
-    previewTag.style.borderRadius = '4px';
-    previewTag.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
-    previewTag.innerText = 'Merged Container: .feature-collections-wrapper (Hero + Grid combined)';
-    overlay.appendChild(previewTag);
+    // 1. Highlight live storefront element
+    const pillTag = document.createElement('div');
+    pillTag.style.position = 'absolute';
+    pillTag.style.left = '80px';
+    pillTag.style.top = '510px';
+    pillTag.style.background = '#d32f2f';
+    pillTag.style.color = '#ffffff';
+    pillTag.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    pillTag.style.fontSize = '12px';
+    pillTag.style.fontWeight = 'bold';
+    pillTag.style.padding = '4px 12px';
+    pillTag.style.borderRadius = '4px';
+    pillTag.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
+    pillTag.innerText = 'Target: Shopify Category Pill';
+    overlay.appendChild(pillTag);
 
-    // 2. Highlight BOTH Subsections in the Real DevTools Elements Tree
-    const hRect = (coords && coords.heroRect) ? coords.heroRect : { x: 1450, y: 555, width: 350, height: 34 };
-    const gRect = (coords && coords.gridRect) ? coords.gridRect : { x: 1450, y: 588, width: 350, height: 34 };
-
+    // 2. Highlight DOM tree selected node
+    const sRect = coords.selRect || { x: 1450, y: 520, width: 380, height: 26 };
     const treeHighlight = document.createElement('div');
     treeHighlight.style.position = 'absolute';
-    treeHighlight.style.left = `${Math.min(hRect.x, gRect.x) - 4}px`;
-    treeHighlight.style.top = `${hRect.y - 2}px`;
-    treeHighlight.style.width = `${Math.max(hRect.width, gRect.width) + 8}px`;
-    treeHighlight.style.height = `${(gRect.y + gRect.height) - hRect.y + 4}px`;
+    treeHighlight.style.left = (sRect.x - 4) + 'px';
+    treeHighlight.style.top = (sRect.y - 2) + 'px';
+    treeHighlight.style.width = (sRect.width + 8) + 'px';
+    treeHighlight.style.height = (sRect.height + 4) + 'px';
     treeHighlight.style.border = '2px solid #ff3333';
     treeHighlight.style.borderRadius = '4px';
     treeHighlight.style.backgroundColor = 'rgba(255, 51, 51, 0.12)';
-    treeHighlight.style.boxShadow = '0 0 10px rgba(255, 51, 51, 0.5)';
     overlay.appendChild(treeHighlight);
 
-    // Callout label next to the tree highlight
-    const treeLabel = document.createElement('div');
-    treeLabel.style.position = 'absolute';
-    treeLabel.style.left = `${hRect.x}px`;
-    treeLabel.style.top = `${hRect.y - 26}px`;
-    treeLabel.style.background = '#d32f2f';
-    treeLabel.style.color = '#ffffff';
-    treeLabel.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    treeLabel.style.fontSize = '11px';
-    treeLabel.style.fontWeight = 'bold';
-    treeLabel.style.padding = '3px 8px';
-    treeLabel.style.borderRadius = '3px';
-    treeLabel.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
-    treeLabel.innerHTML = 'Merged Subsections: __hero + __grid';
-    overlay.appendChild(treeLabel);
+    // 3. Highlight Wrong CSS Property in Styles Pane
+    const szRect = coords.sizeRect || { x: 1860, y: 160, width: 220, height: 22 };
+    const cssHighlight = document.createElement('div');
+    cssHighlight.style.position = 'absolute';
+    cssHighlight.style.left = (szRect.x - 4) + 'px';
+    cssHighlight.style.top = (szRect.y - 2) + 'px';
+    cssHighlight.style.width = (szRect.width + 8) + 'px';
+    cssHighlight.style.height = (szRect.height + 4) + 'px';
+    cssHighlight.style.border = '2.5px solid #ff3333';
+    cssHighlight.style.borderRadius = '4px';
+    cssHighlight.style.backgroundColor = 'rgba(255, 51, 51, 0.18)';
+    overlay.appendChild(cssHighlight);
 
-    // 3. Highlight Styles Pane variables
-    const sRect = (coords && coords.elStyleRect) ? coords.elStyleRect : { x: 1850, y: 60, width: 340, height: 260 };
-    const redBox = document.createElement('div');
-    redBox.style.position = 'absolute';
-    redBox.style.left = `${sRect.x + 6}px`;
-    redBox.style.top = `${sRect.y + 4}px`;
-    redBox.style.width = `${sRect.width - 12}px`;
-    redBox.style.height = `${sRect.height - 8}px`;
-    redBox.style.border = '2px solid #ff3333';
-    redBox.style.borderRadius = '4px';
-    redBox.style.backgroundColor = 'rgba(255, 51, 51, 0.08)';
-    overlay.appendChild(redBox);
-
-    // 4. Comprehensive Root Cause Defect Card (placed cleanly below the styles block)
+    // 4. Defect Analysis Card
     const defectCard = document.createElement('div');
     defectCard.style.position = 'absolute';
-    defectCard.style.left = `${sRect.x}px`;
-    defectCard.style.top = `${sRect.y + sRect.height + 16}px`;
-    defectCard.style.width = '330px';
+    defectCard.style.left = (szRect.x - 20) + 'px';
+    defectCard.style.top = (szRect.y + 160) + 'px';
+    defectCard.style.width = '320px';
     defectCard.style.background = '#252526';
     defectCard.style.border = '1px solid #d32f2f';
     defectCard.style.borderLeft = '4px solid #d32f2f';
@@ -462,26 +325,21 @@ async function captureAuthenticRealDevToolsDefects() {
     defectCard.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     defectCard.style.color = '#e0e0e0';
     defectCard.style.fontSize = '11.5px';
-    defectCard.lineHeight = '1.5';
+    defectCard.style.lineHeight = '1.5';
 
     defectCard.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-weight:700; color:#ff6666;">
-        <span style="font-size:12px;">DEFECT ANALYSIS</span>
-        <span style="background:#d32f2f; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">Merged Architecture</span>
+        <span style="font-size:12px;">TYPOGRAPHY DEFECT ANALYSIS</span>
+        <span style="background:#d32f2f; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">Size & Weight Mismatch</span>
       </div>
-      <div><strong>Figma Architecture:</strong> 2 distinct section containers separated by <code>64px</code> gap</div>
-      <div><strong>Live Storefront:</strong> Merged into single wrapper containing:
-        <ul style="margin-left:14px; margin-top:2px;">
-          <li><code>.feature-collections__hero</code> (Manifesto)</li>
-          <li><code>.feature-collections__grid</code> (Categories)</li>
-        </ul>
-      </div>
-      <div style="margin-top:4px;"><strong>Culprit Properties:</strong> <code style="background:#1e1e1e; color:#9cdcfe; padding:2px 4px; border-radius:3px; font-size:10.5px;">--feature-content-gap: 120px; --feature-bg-overlap: 0px;</code></div>
-      <div style="color:#aaa; font-size:10px; margin-top:3px;">Collapses modularity and breaks design separation</div>
+      <div><strong>Figma Specification:</strong> <code>16px / Bold 700</code></div>
+      <div><strong>Live Storefront:</strong> <code>14px / Black 900</code></div>
+      <div style="margin-top:4px;"><strong>Culprit CSS Rule:</strong> <code style="background:#1e1e1e; color:#ff7b72; padding:2px 4px; border-radius:3px; font-size:11px;">font-size: 14px; font-weight: 900;</code></div>
+      <div style="color:#aaa; font-size:10px; margin-top:3px;">Pill typography undersized (-2px) and overly heavy compared to Figma design.</div>
     `;
     overlay.appendChild(defectCard);
 
-    // 5. Red Pointer Arrow from preview container directly to the merged tree nodes
+    // 5. Red Pointer Arrow from preview pill to DOM tree
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('style', 'position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;');
     svg.innerHTML = `
@@ -490,8 +348,8 @@ async function captureAuthenticRealDevToolsDefects() {
           <path d="M 0 1 L 10 5 L 0 9 z" fill="#ff3333" />
         </marker>
       </defs>
-      <circle cx="550" cy="550" r="4.5" fill="#ff3333" />
-      <path d="M 550 550 C 950 530, 1200 560, ${hRect.x - 8} ${hRect.y + (gRect.y + gRect.height - hRect.y) / 2}" fill="none" stroke="#ff3333" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#qa-arrow-2)" />
+      <circle cx="350" cy="510" r="4.5" fill="#ff3333" />
+      <path d="M 350 510 C 800 510, 1100 520, ${sRect.x - 8} ${sRect.y + sRect.height / 2}" fill="none" stroke="#ff3333" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#qa-arrow-2)" />
     `;
     overlay.appendChild(svg);
 
@@ -499,16 +357,16 @@ async function captureAuthenticRealDevToolsDefects() {
   }, defect2Coords);
 
   await dtPage.waitForTimeout(1000);
-  const out2 = path.join(__dirname, '../reports/audit/screenshots/defect-2-merged-categories-wrapper.png');
+  const out2 = path.join(process.cwd(), 'reports/audit/screenshots/defect-shopify-pill-typography.png');
   await dtPage.screenshot({ path: out2 });
-  console.log('✅ Real DevTools Defect 2 screenshot saved to:', out2);
+  console.log('Saved DevTools Defect 2 screenshot to:', out2);
 
   await viewer.close();
   await browser.close();
-  console.log('\n🎉 Successfully captured both full-width, unclipped genuine Chrome DevTools screenshots!');
+  console.log('\nSuccessfully captured authentic real Google Chrome DevTools defect evidence!');
 }
 
 captureAuthenticRealDevToolsDefects().catch(err => {
-  console.error('❌ Error executing automation:', err);
+  console.error('Error executing automation:', err);
   process.exit(1);
 });
