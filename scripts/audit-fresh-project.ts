@@ -18,6 +18,7 @@ export interface FreshAuditItem {
   severity: string;
   rationale: string;
   userComment: string;
+  screenshotPath?: string;
 }
 
 const PROJECT_NAME = process.env.PROJECT_NAME || 'Fresh-Project';
@@ -125,6 +126,12 @@ async function runFreshProjectAudit() {
 
   const allAuditedItems: FreshAuditItem[] = [];
 
+  const screenshotDir = path.join(process.cwd(), 'reports/audit/screenshots');
+  if (!fs.existsSync(screenshotDir)) {
+    fs.mkdirSync(screenshotDir, { recursive: true });
+  }
+
+  let defectCounter = 0;
   for (const vp of viewports) {
     console.log(`\n--- Auditing ${vp.label} ---`);
     const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
@@ -185,24 +192,60 @@ async function runFreshProjectAudit() {
           const figmaText = (item.characters || item.name || '').trim();
           const match = domData.find(d => d.text.toLowerCase() === figmaText.toLowerCase());
 
-          const expSpec = `Font: ${item.fontFamily || 'Inter'}, Size: ${item.fontSize || 14}px, Weight: ${item.fontWeight || 400}`;
-          
+          const expFont = (item.fontFamily || 'Inter').trim();
+          const expSize = Math.round(item.fontSize || 14);
+          const expWeight = parseInt(item.fontWeight || 400, 10);
+          const expSpec = 'Font: ' + expFont + ', Size: ' + expSize + 'px, Weight: ' + expWeight;
+
           if (match) {
-            allAuditedItems.push({
-              viewport: vp.label,
-              section: sec,
-              subSection: subSec,
-              category: 'Typography',
-              elementName: figmaText,
-              figmaPath: item.figmaPath || `${sec} > ${figmaText}`,
-              status: 'PASSED',
-              expectedSpec: expSpec,
-              liveMeasuredSpec: `Font: ${match.font}, Size: ${match.size}, Weight: ${match.weight}, Color: ${match.color}`,
-              difference: 'None',
-              severity: 'NONE',
-              rationale: 'Verified match on live DOM text node.',
-              userComment: ''
-            });
+            const liveSize = Math.round(parseFloat(match.size) || 14);
+            const liveWeight = parseInt(match.weight || '400', 10);
+            const liveFontClean = match.font.toLowerCase().replace(/['"]/g, '');
+            const expFontClean = expFont.toLowerCase().replace(/['"]/g, '');
+
+            const sizeDiff = liveSize - expSize;
+            const hasSizeDefect = Math.abs(sizeDiff) >= 2;
+            const hasWeightDefect = Math.abs(liveWeight - expWeight) >= 200;
+            const hasFontDefect = !liveFontClean.includes(expFontClean.split(' ')[0]) && !expFontClean.includes('inter');
+
+            if (hasSizeDefect || hasFontDefect || hasWeightDefect) {
+              const defectReasons = [];
+              if (hasSizeDefect) defectReasons.push('Font size mismatch: Figma specifies ' + expSize + 'px vs Live rendered ' + liveSize + 'px (Diff: ' + (sizeDiff > 0 ? '+' : '') + sizeDiff + 'px)');
+              if (hasFontDefect) defectReasons.push('Font family mismatch: Figma specifies "' + expFont + '" vs Live rendered "' + match.font + '"');
+              if (hasWeightDefect) defectReasons.push('Font weight mismatch: Figma specifies ' + expWeight + ' vs Live rendered ' + liveWeight);
+
+              allAuditedItems.push({
+                viewport: vp.label,
+                section: sec,
+                subSection: subSec,
+                category: 'Typography',
+                elementName: figmaText,
+                figmaPath: item.figmaPath || (sec + ' > ' + figmaText),
+                status: 'DEFECT (TYPOGRAPHY)',
+                expectedSpec: expSpec,
+                liveMeasuredSpec: 'Font: ' + match.font + ', Size: ' + match.size + ', Weight: ' + match.weight + ', Color: ' + match.color,
+                difference: defectReasons.join(' | '),
+                severity: Math.abs(sizeDiff) >= 10 ? 'HIGH' : 'MEDIUM',
+                rationale: 'Developer typography defect: ' + defectReasons.join('. ') + '. Exceeds strict 1px Human QA threshold.',
+                userComment: 'Defect flagged against Figma typography spec.'
+              });
+            } else {
+              allAuditedItems.push({
+                viewport: vp.label,
+                section: sec,
+                subSection: subSec,
+                category: 'Typography',
+                elementName: figmaText,
+                figmaPath: item.figmaPath || (sec + ' > ' + figmaText),
+                status: 'PASSED',
+                expectedSpec: expSpec,
+                liveMeasuredSpec: 'Font: ' + match.font + ', Size: ' + match.size + ', Weight: ' + match.weight + ', Color: ' + match.color,
+                difference: 'None (Within strict 1px tolerance)',
+                severity: 'NONE',
+                rationale: 'Verified match on live DOM text node within 1px design threshold.',
+                userComment: ''
+              });
+            }
           } else {
             allAuditedItems.push({
               viewport: vp.label,
@@ -210,14 +253,14 @@ async function runFreshProjectAudit() {
               subSection: subSec,
               category: 'Typography',
               elementName: figmaText,
-              figmaPath: item.figmaPath || `${sec} > ${figmaText}`,
-              status: 'PASSED (STRICT 1:1)',
+              figmaPath: item.figmaPath || (sec + ' > ' + figmaText),
+              status: 'DEFECT (MISSING IN DOM)',
               expectedSpec: expSpec,
-              liveMeasuredSpec: expSpec + ', Case: ' + (figmaText === figmaText.toUpperCase() && figmaText.length > 3 ? 'UPPER' : 'ORIGINAL'),
-              difference: 'None (Exact 1:1 match within 1px)',
-              severity: 'NONE',
-              rationale: 'Typography styling, font-family, computed letterforms, and casing verified matching design leaf text specifications.',
-              userComment: ''
+              liveMeasuredSpec: 'Not detected in live webpage DOM',
+              difference: 'Missing text content from live storefront implementation',
+              severity: 'HIGH',
+              rationale: 'Element is explicitly drawn in Figma catalog (' + item.nodeId + ') but does not render on the live storefront DOM.',
+              userComment: 'Defect: Content missing from live page.'
             });
           }
         } else {
