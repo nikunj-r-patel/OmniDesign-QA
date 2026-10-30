@@ -9,15 +9,27 @@ function resolveFigmaSection(currentPath: string): { section: string; subSection
   if (parts.length <= 1) {
     return { section: parts[0] || 'General', subSection: 'General' };
   }
-  if (parts[1] === 'Frame 155' && parts.length > 2) {
-    return { section: parts[2], subSection: parts.length > 3 ? parts[3] : parts[2] };
-  }
   return { section: parts[1], subSection: parts.length > 2 ? parts[2] : parts[1] };
+}
+
+function resolveRgbColor(fills: any[], defaultColor = { r: 255, g: 255, b: 255, a: 1 }): { r: number; g: number; b: number; a: number } {
+  if (Array.isArray(fills) && fills.length > 0) {
+    const solid = fills.find(f => f.type === 'SOLID' && f.color);
+    if (solid && solid.color) {
+      return {
+        r: Math.round(solid.color.r * 255),
+        g: Math.round(solid.color.g * 255),
+        b: Math.round(solid.color.b * 255),
+        a: solid.opacity ?? 1
+      };
+    }
+  }
+  return defaultColor;
 }
 
 async function fetchFigmaData() {
   console.log('========================================================================');
-  console.log('[OMNIDESIGN-QA] UNIVERSAL FIGMA DATA INGESTION ENGINE');
+  console.log('[OMNIDESIGN-QA] UNIVERSAL FIGMA DATA INGESTION ENGINE (DUAL-MODE)');
   console.log('========================================================================');
 
   const figmaUrl = process.env.FIGMA_URL || '';
@@ -74,26 +86,98 @@ async function fetchFigmaData() {
         const { section, subSection } = resolveFigmaSection(currentPath);
 
         if (node.type === 'TEXT') {
-          const style = node.style || {};
-          let color = { r: 1, g: 1, b: 1, a: 1 };
-          if (node.fills && Array.isArray(node.fills) && node.fills[0] && node.fills[0].color) {
-            color = { ...node.fills[0].color, a: node.fills[0].opacity ?? 1 };
+          const baseStyle = node.style || {};
+          const baseColor = resolveRgbColor(node.fills, { r: 255, g: 255, b: 255, a: 1 });
+          const rawChars = node.characters || node.name || '';
+          const overrides: number[] = node.characterStyleOverrides || [];
+          const overrideTable: Record<string, any> = node.styleOverrideTable || {};
+
+          const uniqueStyles = new Set(overrides);
+          if (overrides.length > 0 && uniqueStyles.size > 1 && rawChars.length > 0) {
+            let curStyleId = overrides[0];
+            let curText = '';
+            const segments: { styleId: number; text: string }[] = [];
+
+            for (let i = 0; i < rawChars.length; i++) {
+              const sId = overrides[i];
+              if (sId === curStyleId) {
+                curText += rawChars[i];
+              } else {
+                if (curText) segments.push({ styleId: curStyleId, text: curText });
+                curStyleId = sId;
+                curText = rawChars[i];
+              }
+            }
+            if (curText) segments.push({ styleId: curStyleId, text: curText });
+
+            segments.forEach((seg, sIdx) => {
+              const trimmed = seg.text.trim();
+              if (!trimmed) return;
+              const segStyle = overrideTable[String(seg.styleId)] || {};
+              const effectiveFont = segStyle.fontFamily || baseStyle.fontFamily || 'Inter';
+              const effectiveWeight = segStyle.fontWeight || baseStyle.fontWeight || 400;
+              const effectiveSize = segStyle.fontSize || baseStyle.fontSize || 14;
+              const effectiveItalic = segStyle.italic || (segStyle.fontStyle && segStyle.fontStyle.toLowerCase().includes('italic')) || false;
+              const effectiveColor = segStyle.fills ? resolveRgbColor(segStyle.fills, baseColor) : baseColor;
+
+              catalog.push({
+                nodeId: node.id + '_seg_' + sIdx,
+                parentNodeId: node.id,
+                section,
+                subSection,
+                name: trimmed,
+                category: 'Typography (Segment)',
+                figmaPath: currentPath + ' > [' + trimmed + ']',
+                box,
+                fontFamily: effectiveFont,
+                fontSize: effectiveSize,
+                fontWeight: effectiveWeight,
+                fontStyle: effectiveItalic ? 'italic' : 'normal',
+                lineHeightPx: segStyle.lineHeightPx || baseStyle.lineHeightPx || effectiveSize,
+                color: effectiveColor,
+                characters: trimmed,
+                isSegment: true,
+                parentFullText: rawChars.trim()
+              });
+            });
+
+            // Also push root Typography node
+            catalog.push({
+              nodeId: node.id,
+              section,
+              subSection,
+              name: rawChars.trim(),
+              category: 'Typography',
+              figmaPath: currentPath,
+              box,
+              fontFamily: baseStyle.fontFamily || 'Inter',
+              fontSize: baseStyle.fontSize || 14,
+              fontWeight: baseStyle.fontWeight || 400,
+              fontStyle: baseStyle.italic ? 'italic' : 'normal',
+              lineHeightPx: baseStyle.lineHeightPx || baseStyle.fontSize || 14,
+              color: baseColor,
+              characters: rawChars.trim(),
+              hasSubSegments: true
+            });
+          } else {
+            const effectiveItalic = baseStyle.italic || (baseStyle.fontStyle && baseStyle.fontStyle.toLowerCase().includes('italic')) || false;
+            catalog.push({
+              nodeId: node.id,
+              section,
+              subSection,
+              name: rawChars.trim(),
+              category: 'Typography',
+              figmaPath: currentPath,
+              box,
+              fontFamily: baseStyle.fontFamily || 'Inter',
+              fontSize: baseStyle.fontSize || 14,
+              fontWeight: baseStyle.fontWeight || 400,
+              fontStyle: effectiveItalic ? 'italic' : 'normal',
+              lineHeightPx: baseStyle.lineHeightPx || baseStyle.fontSize || 14,
+              color: baseColor,
+              characters: rawChars.trim()
+            });
           }
-          catalog.push({
-            nodeId: node.id,
-            section,
-            subSection,
-            name: (node.characters || node.name || '').trim(),
-            category: 'Typography',
-            figmaPath: currentPath,
-            box,
-            fontFamily: style.fontFamily || 'Inter',
-            fontSize: style.fontSize || 14,
-            fontWeight: style.fontWeight || 400,
-            lineHeightPx: style.lineHeightPx || style.fontSize || 14,
-            color,
-            characters: node.characters || node.name
-          });
         } else if (node.type === 'FRAME' || node.type === 'COMPONENT' || node.type === 'INSTANCE') {
           catalog.push({
             nodeId: node.id,
