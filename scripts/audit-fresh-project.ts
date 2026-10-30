@@ -68,6 +68,14 @@ function detectDesignViewports(catalog: any[]): { key: string; label: string; wi
   return vps.length > 0 ? vps : [{ key: 'desktop', label: 'Desktop (1920px)', width: 1920, height: 900 }];
 }
 
+function cleanText(t: string): string {
+  return (t || '')
+    .toLowerCase()
+    .replace(/[.,·•/:;\-\—_!?'"’“”]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function escapeHtml(str: string): string {
   if (!str) return '';
   return String(str)
@@ -163,11 +171,14 @@ async function runFreshProjectAudit() {
             .filter(Boolean)
             .join(' ');
 
-          if (directText && directText.length > 0 && directText.length < 300) {
+          const fullText = (el.innerText || '').trim();
+          const targetText = directText || (fullText.length < 300 ? fullText : '');
+          if (targetText && targetText.length > 0) {
             const cs = window.getComputedStyle(el);
             const rect = el.getBoundingClientRect();
             results.push({
-              text: directText,
+              text: targetText,
+              clean: targetText.toLowerCase().replace(/[.,·•/:;\-\—_!?'"’“”]/g, ' ').replace(/\s+/g, ' ').trim(),
               tag: el.tagName.toLowerCase(),
               font: cs.fontFamily,
               size: cs.fontSize,
@@ -183,14 +194,21 @@ async function runFreshProjectAudit() {
       console.log(`   Scraped ${domData.length} visible text elements from DOM.`);
 
       // Compare Catalog with DOM
-      catalog.forEach((item: any) => {
+      for (const item of catalog) {
         const sec = item.section || 'General';
         const subSec = item.subSection || (item.figmaPath ? item.figmaPath.split(' > ')[2] || 'Content' : 'Content');
         const cat = item.category || 'General';
 
         if (cat === 'Typography') {
           const figmaText = (item.characters || item.name || '').trim();
-          const match = domData.find(d => d.text.toLowerCase() === figmaText.toLowerCase());
+          const fClean = cleanText(figmaText);
+          let match = domData.find(d => d.clean === fClean);
+          if (!match && fClean.length > 8) {
+            match = domData.find(d => d.clean.includes(fClean) || fClean.includes(d.clean));
+          }
+          if (!match && figmaText.length > 4) {
+            match = domData.find(d => d.text.toLowerCase().includes(figmaText.toLowerCase()));
+          }
 
           const expFont = (item.fontFamily || 'Inter').trim();
           const expSize = Math.round(item.fontSize || 14);
@@ -214,6 +232,24 @@ async function runFreshProjectAudit() {
               if (hasFontDefect) defectReasons.push('Font family mismatch: Figma specifies "' + expFont + '" vs Live rendered "' + match.font + '"');
               if (hasWeightDefect) defectReasons.push('Font weight mismatch: Figma specifies ' + expWeight + ' vs Live rendered ' + liveWeight);
 
+              let shotPath = '';
+              if (defectCounter < 25 && match.rect && match.rect.width > 0 && match.rect.height > 0) {
+                try {
+                  const shotName = 'defect-' + (defectCounter + 1) + '-' + sec.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() + '.png';
+                  const absShot = path.join(process.cwd(), 'reports/audit/screenshots', shotName);
+                  const clip = {
+                    x: Math.max(0, Math.floor(match.rect.x - 10)),
+                    y: Math.max(0, Math.floor(match.rect.y - 10)),
+                    width: Math.min(vp.width, Math.ceil(match.rect.width + 20)),
+                    height: Math.min(300, Math.ceil(match.rect.height + 20))
+                  };
+                  if (clip.width > 20 && clip.height > 10) {
+                    await page.screenshot({ path: absShot, clip });
+                    shotPath = 'screenshots/' + shotName;
+                  }
+                } catch (e) {}
+              }
+
               allAuditedItems.push({
                 viewport: vp.label,
                 section: sec,
@@ -227,7 +263,8 @@ async function runFreshProjectAudit() {
                 difference: defectReasons.join(' | '),
                 severity: Math.abs(sizeDiff) >= 10 ? 'HIGH' : 'MEDIUM',
                 rationale: 'Developer typography defect: ' + defectReasons.join('. ') + '. Exceeds strict 1px Human QA threshold.',
-                userComment: 'Defect flagged against Figma typography spec.'
+                userComment: 'Defect flagged against Figma typography spec.',
+                screenshotPath: shotPath || undefined
               });
             } else {
               allAuditedItems.push({
@@ -281,7 +318,7 @@ async function runFreshProjectAudit() {
             userComment: 'Section box model verified.'
           });
         }
-      });
+      }
 
       console.log(`   Audited ${catalog.length} items for ${vp.label}.`);
     } catch (err: any) {
