@@ -28,12 +28,12 @@
 
   function getSectionName(node) {
     let curr = node;
-    let section = 'General';
+    let section = 'General'; const sectionMap = {'Frame 154': 'Hero', 'Frame 167': 'Key Metrics / Stats', 'Frame 106': 'Social Proof / Clients', 'Frame 177': 'Selected Work / Portfolio', 'Frame 176': 'eCommerce Services', 'Frame 175': 'AI Solutions', 'Frame 174': 'Industries', 'Frame 153': 'Why BRISTM', 'Component 124': 'BRISTM Apps', 'Frame 314': 'Process', 'Frame 172': 'Client Reviews / Testimonials', 'Frame 171': 'FAQ / Before You Ask', 'Frame 310': 'CTA / Consultation', 'Frame 315': 'Contact / Let Us Build', 'Component 70': 'Header', 'Frame 186': 'Footer'};
     while (curr && curr.parent && curr.parent.type !== 'PAGE' && curr.parent.type !== 'DOCUMENT') {
       section = curr.name;
       curr = curr.parent;
     }
-    return section;
+    for (const k in sectionMap) { if (section.indexOf(k) !== -1) return sectionMap[k]; } return section;
   }
 
   function extractNode(node) {

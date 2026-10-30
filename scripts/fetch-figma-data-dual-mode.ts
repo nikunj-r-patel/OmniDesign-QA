@@ -1,3 +1,25 @@
+function resolveSemanticSection(pathStr: string): string {
+  const sm: Record<string, string> = {
+    'Frame 154': 'Hero',
+    'Frame 167': 'Key Metrics / Stats',
+    'Frame 106': 'Social Proof / Clients',
+    'Frame 177': 'Selected Work / Portfolio',
+    'Frame 176': 'eCommerce Services',
+    'Frame 175': 'AI Solutions',
+    'Frame 174': 'Industries',
+    'Frame 153': 'Why BRISTM',
+    'Component 124': 'BRISTM Apps',
+    'Frame 314': 'Process',
+    'Frame 172': 'Client Reviews / Testimonials',
+    'Frame 171': 'FAQ / Before You Ask',
+    'Frame 310': 'CTA / Consultation',
+    'Frame 315': 'Contact / Let Us Build',
+    'Component 70': 'Header',
+    'Frame 186': 'Footer'
+  };
+  for (const k in sm) { if (pathStr.indexOf(k) !== -1) return sm[k]; }
+  return pathStr.split(' > ')[1] || 'General';
+}
 import fs from 'fs';
 import path from 'path';
 import { chromium } from 'playwright';
@@ -82,7 +104,7 @@ async function fetchFigmaData() {
           }
           catalog.push({
             nodeId: node.id,
-            section: currentPath.split(' > ')[1] || 'General',
+            section: resolveSemanticSection(currentPath),
             subSection: currentPath.split(' > ')[2] || 'General',
             name: (node.characters || node.name || '').trim(),
             category: 'Typography',
@@ -98,7 +120,7 @@ async function fetchFigmaData() {
         } else if (node.type === 'FRAME' || node.type === 'COMPONENT' || node.type === 'INSTANCE') {
           catalog.push({
             nodeId: node.id,
-            section: currentPath.split(' > ')[1] || 'General',
+            section: resolveSemanticSection(currentPath),
             subSection: currentPath.split(' > ')[2] || 'General',
             name: node.name,
             category: 'Section Box Model',
