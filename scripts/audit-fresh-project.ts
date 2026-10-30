@@ -23,6 +23,50 @@ export interface FreshAuditItem {
 const PROJECT_NAME = process.env.PROJECT_NAME || 'Fresh-Project';
 const PREVIEW_URL = process.env.PREVIEW_URL || process.env.SHOPIFY_STORE_URL || '';
 
+function detectDesignViewports(catalog: any[]): { key: string; label: string; width: number; height: number }[] {
+  const vps: { key: string; label: string; width: number; height: number }[] = [];
+  const seen = new Set<number>();
+  const sep = [
+    { file: 'reports/audit/figma-desktop-complete-catalog.json', lbl: 'Desktop', defW: 1280 },
+    { file: 'reports/audit/figma-tablet-complete-catalog.json', lbl: 'Tablet', defW: 744 },
+    { file: 'reports/audit/figma-mobile-complete-catalog.json', lbl: 'Mobile', defW: 390 }
+  ];
+  if (fs.existsSync(sep[0].file) && (fs.existsSync(sep[1].file) || fs.existsSync(sep[2].file))) {
+    sep.forEach(s => {
+      if (fs.existsSync(s.file)) {
+        try {
+          const c = JSON.parse(fs.readFileSync(s.file, 'utf8'));
+          const r = c[0];
+          const w = (r && r.box && r.box.width) ? Math.round(r.box.width) : s.defW;
+          if (!seen.has(w)) {
+            seen.add(w);
+            vps.push({ key: s.lbl.toLowerCase(), label: s.lbl + ' (' + w + 'px)', width: w, height: w >= 1200 ? 900 : (w >= 700 ? 1024 : 844) });
+          }
+        } catch (e) {}
+      }
+    });
+  }
+  if (vps.length === 0 && Array.isArray(catalog) && catalog.length > 0) {
+    const artboards = catalog.filter(it => it.box && it.box.width >= 320 && (!it.figmaPath || !it.figmaPath.includes(' > ')));
+    if (artboards.length > 1) {
+      artboards.forEach(n => {
+        const w = Math.round(n.box.width);
+        if (!seen.has(w)) {
+          seen.add(w);
+          const l = w >= 1600 ? 'XL Desktop' : (w >= 1200 ? 'Desktop' : (w >= 600 ? 'Tablet' : 'Mobile'));
+          vps.push({ key: 'vp_' + w, label: l + ' (' + w + 'px)', width: w, height: w >= 1200 ? 900 : (w >= 600 ? 1024 : 844) });
+        }
+      });
+    } else {
+      const r = catalog[0];
+      const w = (r && r.box && r.box.width) ? Math.round(r.box.width) : 1920;
+      const l = w >= 1600 ? 'XL Desktop' : (w >= 1200 ? 'Desktop' : (w >= 600 ? 'Tablet' : 'Mobile'));
+      vps.push({ key: 'detected_' + w, label: l + ' (' + w + 'px)', width: w, height: w >= 1200 ? 900 : (w >= 600 ? 1024 : 844) });
+    }
+  }
+  return vps.length > 0 ? vps : [{ key: 'desktop', label: 'Desktop (1920px)', width: 1920, height: 900 }];
+}
+
 function escapeHtml(str: string): string {
   if (!str) return '';
   return String(str)
@@ -75,11 +119,9 @@ async function runFreshProjectAudit() {
   console.log(`\n?? Launching Chromium to inspect live storefront: ${PREVIEW_URL}...`);
   const browser = await chromium.launch({ headless: true });
 
-  const viewports = [
-    { label: 'Desktop (1280px)', width: 1280, height: 900, key: 'desktop' },
-    { label: 'Tablet (744px)', width: 744, height: 1024, key: 'tablet' },
-    { label: 'Mobile (390px)', width: 390, height: 844, key: 'mobile' },
-  ];
+  const viewports = detectDesignViewports(catalog);
+  console.log('\n[AUTO-DETECTION] Dynamic Viewports Detected from Figma Design:');
+  viewports.forEach(v => console.log('   -> ' + v.label + ' (Width: ' + v.width + 'px, Height: ' + v.height + 'px)'));
 
   const allAuditedItems: FreshAuditItem[] = [];
 
@@ -249,16 +291,20 @@ async function runFreshProjectAudit() {
   console.log(`\n?? Saved Master Multi-Viewport TSV to: ${tsvPath}`);
 
   // 4. Generate Premium Interactive Multi-Viewport HTML Report
-  const viewportsData = [
-    { key: 'desktop', label: 'Desktop (1280px)', items: allAuditedItems.filter(i => i.viewport.includes('Desktop')) },
-    { key: 'tablet', label: 'Tablet (744px)', items: allAuditedItems.filter(i => i.viewport.includes('Tablet')) },
-    { key: 'mobile', label: 'Mobile (390px)', items: allAuditedItems.filter(i => i.viewport.includes('Mobile')) },
-  ];
+  const viewportsData = viewports.map(vp => ({
+    key: vp.key,
+    label: vp.label,
+    width: vp.width,
+    items: allAuditedItems.filter(i => i.viewport === vp.label)
+  }));
 
-  const desktopItems = viewportsData[0].items;
-  const tabletItems = viewportsData[1].items;
-  const mobileItems = viewportsData[2].items;
   const allItems = allAuditedItems;
+  const summaryVpSub = viewportsData.map(v => v.label + ' (' + v.items.length + ')').join(' + ');
+  const tabButtonsHtml = viewportsData.map((vp, vIdx) => 
+    '<button class="vp-tab-btn ' + (vIdx === 0 ? 'active' : '') + '" onclick="switchViewportTab(\'' + vp.key + '\', this)">' +
+      escapeHtml(vp.label) + ' <span class="vp-badge-pill">' + vp.items.length + '</span>' +
+    '</button>'
+  ).join('\n');
 
   function renderTableRows(rows: FreshAuditItem[], vpKey: string): string {
     return rows.map((r, rIdx) => {
@@ -331,7 +377,7 @@ async function runFreshProjectAudit() {
   }
 
   // Generate tabbed sections with full Sub-Section hierarchy for each viewport
-  const viewportSectionsHtml = viewportsData.map(vp => {
+  const viewportSectionsHtml = viewportsData.map((vp, vIdx) => {
     // Group items by Section -> SubSection
     const secMap = new Map<string, Map<string, FreshAuditItem[]>>();
     vp.items.forEach(it => {
@@ -438,7 +484,7 @@ async function runFreshProjectAudit() {
     }).join('');
 
     return `
-      <div id="tab-viewport-${vp.key}" class="viewport-tab-panel ${vp.key === 'desktop' ? 'active' : ''}">
+      <div id="tab-viewport-${vp.key}" class="viewport-tab-panel ${vIdx === 0 ? 'active' : ''}">
         <div class="viewport-banner">
           <div class="vp-banner-info">
             <span class="vp-banner-tag">${vp.label}</span>
@@ -927,7 +973,7 @@ async function runFreshProjectAudit() {
       <div class="kpi-card blue">
         <div class="kpi-val" style="color: var(--primary);">${allItems.length}</div>
         <div class="kpi-lbl">Total Checks Across Viewports</div>
-        <div class="kpi-sub">Desktop (${desktopItems.length}) + Tablet (${tabletItems.length}) + Mobile (${mobileItems.length})</div>
+        <div class="kpi-sub">${summaryVpSub}</div>
       </div>
       <div class="kpi-card ${allItems.filter(i => i.status.toUpperCase().includes('DEFECT')).length > 0 ? 'red' : 'green'}">
         <div class="kpi-val" style="color: ${allItems.filter(i => i.status.toUpperCase().includes('DEFECT')).length > 0 ? '#ff7b72' : 'var(--success)'};">${allItems.filter(i => i.status.toUpperCase().includes('DEFECT')).length}</div>
@@ -946,17 +992,9 @@ async function runFreshProjectAudit() {
       </div>
     </div>
 
-    <!-- Viewport Switcher Tabs -->
+    <!-- Dynamic Viewport Switcher Tabs -->
     <div class="viewport-tabs-bar">
-      <button class="vp-tab-btn active" onclick="switchViewportTab('desktop', this)">
-        💻 Desktop (1280px) <span class="vp-badge-pill">${desktopItems.length}</span>
-      </button>
-      <button class="vp-tab-btn" onclick="switchViewportTab('tablet', this)">
-        📱 Tablet (744px) <span class="vp-badge-pill">${tabletItems.length}</span>
-      </button>
-      <button class="vp-tab-btn" onclick="switchViewportTab('mobile', this)">
-        📱 Mobile (390px) <span class="vp-badge-pill">${mobileItems.length}</span>
-      </button>
+      ${tabButtonsHtml}
     </div>
 
     <!-- Controls Bar -->
@@ -971,7 +1009,7 @@ async function runFreshProjectAudit() {
   </div>
 
   <script>
-    let activeVp = 'desktop';
+    let activeVp = '${viewportsData[0] ? viewportsData[0].key : 'desktop'}';
 
     function switchViewportTab(vpKey, btn) {
       activeVp = vpKey;
